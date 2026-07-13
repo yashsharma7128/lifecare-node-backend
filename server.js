@@ -13,17 +13,40 @@ app.use(cors());
 // Fallbacks for quick start ONLY
 const MONGO_URI =
   process.env.MONGO_URI ||
-  "mongodb+srv://yashsharmagtropy:yash%402001@cluster0.4wxsod3.mongodb.net/lifecare_db?retryWrites=true&w=majority"; // change in production
-
+  "mongodb://admin:f**ku@198.20.103.218:28011/testing?authSource=admin"; // change in production
 const JWT_SECRET =
   process.env.JWT_SECRET ||
   "lifecare-ro-systems-secret-key-change-in-production"; // change in production
 
 /* ================= DB ================= */
+mongoose.plugin((schema) => {
+  schema.set("toJSON", {
+    virtuals: true,
+    versionKey: false,
+    transform: (doc, ret) => {
+      if (ret._id) {
+        ret.id = ret._id.toString();
+      }
+      return ret;
+    }
+  });
+  schema.set("toObject", {
+    virtuals: true,
+    versionKey: false,
+    transform: (doc, ret) => {
+      if (ret._id) {
+        ret.id = ret._id.toString();
+      }
+      return ret;
+    }
+  });
+});
+
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
+
 
 /* ================= MODELS ================= */
 const User = mongoose.model(
@@ -98,6 +121,8 @@ const Contact = mongoose.model(
   new mongoose.Schema(
     {
       name: String,
+      email: String,
+      phone: String,
       message: String,
       status: { type: String, default: "pending" },
       ip_address: String,
@@ -147,24 +172,54 @@ const admin = (req, res, next) => {
 app.post("/api/auth/register/", async (req, res) => {
   const { username, email, password, name, phone } = req.body;
 
-  const hash = await bcrypt.hash(password, 10);
+  try {
+    // Check uniqueness of email
+    if (email) {
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) {
+        return res.status(400).json({ error: "Email is already registered" });
+      }
+    }
 
-  const user = await User.create({
-    username,
-    email,
-    password: hash,
-    name,
-    phone,
-  });
+    // Check uniqueness of phone
+    if (phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) {
+        return res
+          .status(400)
+          .json({ error: "Phone number is already registered" });
+      }
+    }
 
-  const { access, refresh } = generateTokens(user);
+    // Check uniqueness of username
+    if (username) {
+      const existingUsername = await User.findOne({ username });
+      if (existingUsername) {
+        return res.status(400).json({ error: "Username is already taken" });
+      }
+    }
 
-  res.status(201).json({
-    access,
-    refresh,
-    user,
-    message: "Registration successful",
-  });
+    const hash = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      username,
+      email,
+      password: hash,
+      name,
+      phone,
+    });
+
+    const { access, refresh } = generateTokens(user);
+
+    res.status(201).json({
+      access,
+      refresh,
+      user,
+      message: "Registration successful",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({ error: "Registration failed. Please try again." });
+  }
 });
 
 app.post("/api/auth/login/", async (req, res) => {
@@ -440,6 +495,7 @@ app.post("/api/contact/", async (req, res) => {
 
     const contact = await Contact.create({
       name: req.body.name,
+      email: req.body.email,
       phone: req.body.phone,
       message: req.body.message,
       ip_address: ip,

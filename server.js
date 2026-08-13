@@ -629,6 +629,23 @@ app.get("/api/admin/dashboard/", auth, admin, async (req, res) => {
   }
 });
 
+/* ================= PING & KEEP-AWAKE ================= */
+app.get("/ping", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// Self-ping every 10 minutes to prevent Render free-tier from sleeping
+const PUBLIC_URL = process.env.PUBLIC_URL || "https://lifecare-node-backend.onrender.com";
+setInterval(() => {
+  // Only self-ping if we are not running a local test suite
+  if (process.env.NODE_ENV !== "test") {
+    fetch(`${PUBLIC_URL}/ping`)
+      .then((res) => console.log(`Self-ping status: ${res.status}`))
+      .catch((err) => console.error("Self-ping failed:", err.message));
+  }
+}, 10 * 60 * 1000); // 10 minutes (Render sleeps after 15 mins of inactivity)
+
 /* ================= START ================= */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+

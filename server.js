@@ -4,6 +4,10 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const {
+  sendContactAdminNotification,
+  sendContactCustomerThankYou,
+} = require("./emailService");
 
 const app = express();
 app.use(express.json());
@@ -501,6 +505,14 @@ app.post("/api/contact/", async (req, res) => {
       ip_address: ip,
       status: "pending",
     });
+
+    // Send emails asynchronously (don't block HTTP response)
+    sendContactAdminNotification(contact).catch((e) =>
+      console.error("[Contact] Admin email error:", e)
+    );
+    sendContactCustomerThankYou(contact).catch((e) =>
+      console.error("[Contact] Customer email error:", e)
+    );
 
     res.status(201).json(contact);
   } catch (err) {

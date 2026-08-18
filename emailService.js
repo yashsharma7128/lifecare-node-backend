@@ -18,8 +18,13 @@ const createTransporter = () => {
   const pass = rawPass.replace(/\s+/g, "").trim();
 
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // Use SSL on port 465 (avoids port 587 cloud firewall blocks)
     auth: { user, pass },
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
 };
 

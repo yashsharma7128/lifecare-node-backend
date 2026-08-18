@@ -5,10 +5,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const {
-  dispatchEmail,
-  createTransporter,
   sendContactAdminNotification,
   sendContactCustomerThankYou,
+  sendViaPythonMailServer,
 } = require("./emailService");
 
 const app = express();
@@ -497,26 +496,19 @@ app.delete("/api/amc/:id/", auth, admin, async (req, res) => {
 // Diagnostic test endpoint
 app.get("/api/test-email", async (req, res) => {
   try {
-    const info = await dispatchEmail({
-      to: process.env.ADMIN_EMAIL || "care.lifecarerosystems@gmail.com",
-      subject: "🔔 Diagnostic Test Email from Render",
-      html: "<p>If you received this, email sending from your backend server is working 100% properly!</p>",
+    const info = await sendViaPythonMailServer({
+      name: "Diagnostic Test User",
+      email: process.env.ADMIN_EMAIL || "care.lifecarerosystems@gmail.com",
+      phone: "9312670679",
+      message: "Testing dedicated Python mail server connection",
     });
 
-    res.json({ success: true, messageId: info.messageId, provider: process.env.BREVO_API_KEY ? "Brevo HTTPS API" : (process.env.RESEND_API_KEY ? "Resend HTTPS API" : "Direct SMTP") });
+    res.json({ success: true, message: "Python Mail Server reached successfully and sent emails!" });
   } catch (err) {
     res.status(500).json({
       success: false,
       error: err.message,
-      code: err.code,
-      command: err.command,
-      envCheck: {
-        hasBREVO_API_KEY: !!process.env.BREVO_API_KEY,
-        hasRESEND_API_KEY: !!process.env.RESEND_API_KEY,
-        hasSMTP_USER: !!process.env.SMTP_USER,
-        hasSMTP_PASS: !!process.env.SMTP_PASS,
-        hasADMIN_EMAIL: !!process.env.ADMIN_EMAIL,
-      },
+      targetServer: process.env.PYTHON_MAIL_API || "http://107.6.185.74:8913/send-contact-emails",
     });
   }
 });

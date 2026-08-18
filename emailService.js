@@ -2,20 +2,23 @@ const nodemailer = require("nodemailer");
 
 // Create reusable transporter
 const createTransporter = () => {
-  const user = process.env.SMTP_USER || "care.lifecarerosystems@gmail.com";
-  const pass = process.env.SMTP_PASS;
+  const user = (
+    process.env.SMTP_USER || "care.lifecarerosystems@gmail.com"
+  ).trim();
+  const rawPass = process.env.SMTP_PASS;
 
-  if (!pass) {
+  if (!rawPass) {
     console.warn(
       "[EmailService] Warning: SMTP_PASS is not configured in .env. Emails will not be delivered until SMTP credentials are provided."
     );
     return null;
   }
 
+  // Remove any spaces from the 16-character Gmail app password
+  const pass = rawPass.replace(/\s+/g, "").trim();
+
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587", 10),
-    secure: process.env.SMTP_PORT === "465",
+    service: "gmail",
     auth: { user, pass },
   });
 };

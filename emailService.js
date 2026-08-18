@@ -176,6 +176,7 @@ const sendContactCustomerThankYou = async (contact) => {
 };
 
 module.exports = {
+  createTransporter,
   sendContactAdminNotification,
   sendContactCustomerThankYou,
 };

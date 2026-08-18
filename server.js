@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const {
+  createTransporter,
   sendContactAdminNotification,
   sendContactCustomerThankYou,
 } = require("./emailService");
@@ -491,6 +492,40 @@ app.delete("/api/amc/:id/", auth, admin, async (req, res) => {
 
 /* ================= CONTACT ================= */
 /* ================= CONTACT (Django Equivalent) ================= */
+
+// Diagnostic test endpoint
+app.get("/api/test-email", async (req, res) => {
+  try {
+    const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(400).json({
+        success: false,
+        error: "SMTP_PASS not found in environment variables",
+        envCheck: {
+          hasSMTP_USER: !!process.env.SMTP_USER,
+          hasSMTP_PASS: !!process.env.SMTP_PASS,
+          hasADMIN_EMAIL: !!process.env.ADMIN_EMAIL,
+        },
+      });
+    }
+
+    const info = await transporter.sendMail({
+      from: `"Life Care RO Systems" <${process.env.SMTP_USER || "care.lifecarerosystems@gmail.com"}>`,
+      to: process.env.ADMIN_EMAIL || "care.lifecarerosystems@gmail.com",
+      subject: "🔔 Diagnostic Test Email from Render",
+      text: "If you received this, email sending from your backend server is working 100% properly!",
+    });
+
+    res.json({ success: true, messageId: info.messageId, response: info.response });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      code: err.code,
+      command: err.command,
+    });
+  }
+});
 
 // 1️⃣ CREATE — POST /api/contact/ (Public)
 app.post("/api/contact/", async (req, res) => {
